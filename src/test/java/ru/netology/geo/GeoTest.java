@@ -2,66 +2,51 @@ package ru.netology.geo;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import ru.netology.entity.Country;
 import ru.netology.entity.Location;
 
+
+import java.util.stream.Stream;
+
+
+
 public class GeoTest {
 
-    private final GeoServiceImpl geoService = new GeoServiceImpl();
+    GeoServiceImpl geoService = new GeoServiceImpl();
 
-    @Test
-    void byIpLocalhostTest() {
-        Location location = geoService.byIp(GeoServiceImpl.LOCALHOST);
-        Assertions.assertNotNull(location);
-        Assertions.assertNull(location.getCity());
-        Assertions.assertNull(location.getCountry());
-        Assertions.assertNull(location.getStreet());
-        Assertions.assertEquals(0, location.getBuiling());
+    static Stream<Arguments> provideByIpTestCases() {
+        return Stream.of(
+                Arguments.of("127.0.0.1", null, null, null, 0),
+                Arguments.of(GeoServiceImpl.MOSCOW_IP, "Moscow", Country.RUSSIA, "Lenina", 15),
+                Arguments.of(GeoServiceImpl.NEW_YORK_IP, "New York", Country.USA, " 10th Avenue", 32),
+                Arguments.of("172.45.67.89", "Moscow", Country.RUSSIA, null, 0),
+                Arguments.of("96.23.45.67", "New York", Country.USA, null, 0)
+        );
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("provideByIpTestCases")
+    void testByIp(String ip, String city, Country country, String street, int building) {
+        Location location = geoService.byIp(ip);
+
+        Assertions.assertEquals(city, location.getCity());
+        Assertions.assertEquals(country, location.getCountry());
+        Assertions.assertEquals(street, location.getStreet());
+        Assertions.assertEquals(building, location.getBuiling());
     }
 
     @Test
-    void byIpMoscowTest() {
-        Location location = geoService.byIp(GeoServiceImpl.MOSCOW_IP);
-        Assertions.assertNotNull(location);
-        Assertions.assertEquals("Moscow", location.getCity());
-        Assertions.assertEquals(Country.RUSSIA, location.getCountry());
-        Assertions.assertEquals("Lenina", location.getStreet());
-        Assertions.assertEquals(15, location.getBuiling());
-    }
+    void testByCoordinates() {
+        Class<RuntimeException> expected = RuntimeException.class;
 
-    @Test
-    void byIpNewYorkTest() {
-        Location location = geoService.byIp(GeoServiceImpl.NEW_YORK_IP);
-        Assertions.assertNotNull(location);
-        Assertions.assertEquals("New York", location.getCity());
-        Assertions.assertEquals(Country.USA, location.getCountry());
-        Assertions.assertEquals(" 10th Avenue", location.getStreet());
-        Assertions.assertEquals(32, location.getBuiling());
-    }
+        Executable executable = () -> geoService.byCoordinates(10.2, 9.2);
 
-    @Test
-    void byIpRussiaTest() {
-        Location location = geoService.byIp("172.45.67.89");
-        Assertions.assertNotNull(location);
-        Assertions.assertEquals("Moscow", location.getCity());
-        Assertions.assertEquals(Country.RUSSIA, location.getCountry());
-        Assertions.assertNull(location.getStreet());
-        Assertions.assertEquals(0, location.getBuiling());
-    }
-
-    @Test
-    void byIpUSATest() {
-        Location location = geoService.byIp("96.23.45.67");
-        Assertions.assertNotNull(location);
-        Assertions.assertEquals("New York", location.getCity());
-        Assertions.assertEquals(Country.USA, location.getCountry());
-        Assertions.assertNull(location.getStreet());
-        Assertions.assertEquals(0, location.getBuiling());
-    }
-
-    @Test
-    void byIpUnknownTest() {
-        Location location = geoService.byIp("123.45.67.89");
-        Assertions.assertNull(location);
+        Assertions.assertThrows(expected, executable);
     }
 }
